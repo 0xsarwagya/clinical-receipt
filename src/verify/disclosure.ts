@@ -1,4 +1,5 @@
 import { SPEC_NAME, SPEC_VERSION } from "../core/constants.js";
+import { classifyEventType, reservedNamespaceOf } from "../core/extensions.js";
 import { bytesEqual, decodeBase64Url } from "../core/encoding.js";
 import { headerLeafBytes } from "../core/header.js";
 import { resolveHash } from "../core/hash.js";
@@ -280,6 +281,23 @@ export async function verifyDisclosure(
     });
   }
 
+  // Bucket the extension namespaces present in the disclosed subset.
+  const understood = new Set<string>();
+  const unknown = new Set<string>();
+  for (const disclosed of pkg.events) {
+    const kind = disclosed.envelope.type;
+    if (classifyEventType(kind) === "core") continue;
+    const namespace = reservedNamespaceOf(kind);
+    if (namespace !== null) {
+      understood.add(namespace);
+    } else {
+      const anchor = kind.includes(":")
+        ? kind.split(":")[0] ?? kind
+        : kind.split(".").slice(0, 2).join(".");
+      unknown.add(anchor);
+    }
+  }
+
   const anySignatureFailed = signatures.some((s) => s.status === "failed");
   const ok = rootVerified && failures.length === 0 && !anySignatureFailed;
 
@@ -308,6 +326,10 @@ export async function verifyDisclosure(
     reproducibility: {
       deterministic: "not-evaluated",
       nondeterministic: "not-claimed",
+    },
+    extensions: {
+      understood: Array.from(understood).sort(),
+      unknown: Array.from(unknown).sort(),
     },
     warnings,
     disclosedEvents: pkg.events.length,

@@ -1,6 +1,6 @@
 {
   "name": "@0xsarwagya/clinical-receipt",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Portable, independently verifiable receipts of how a clinical AI output came to exist.",
   "type": "module",
   "license": "Apache-2.0",
@@ -17,9 +17,14 @@
     "selective-disclosure",
     "verification",
     "healthcare",
+    "fhir",
     "typescript"
   ],
-  "sideEffects": false,
+  "sideEffects": [
+    "./dist/fhir.js",
+    "./dist/fhir/register.js",
+    "./dist/fhir/canonicalize.js"
+  ],
   "engines": {
     "node": ">=20"
   },
@@ -31,6 +36,10 @@
     "./verify": {
       "types": "./dist/verify.d.ts",
       "import": "./dist/verify.js"
+    },
+    "./fhir": {
+      "types": "./dist/fhir.d.ts",
+      "import": "./dist/fhir.js"
     }
   },
   "bin": {
@@ -55,6 +64,7 @@
   "devDependencies": {
     "@types/node": "^22.15.3",
     "tsup": "^8.3.5",
+    "tsx": "^4.23.0",
     "typescript": "5.9.2",
     "vitest": "^3.0.0"
   },

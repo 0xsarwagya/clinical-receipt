@@ -1,6 +1,7 @@
 import { canonicalize } from "../core/canonicalize.js";
 import { commitPayload, commitmentsEqual } from "../core/commitment.js";
 import { SPEC_NAME, SPEC_VERSION } from "../core/constants.js";
+import { classifyEventType, reservedNamespaceOf } from "../core/extensions.js";
 import {
   bytesEqual,
   decodeBase64Url,
@@ -246,6 +247,28 @@ export async function verifyReceipt(
     message: "receipt has no externally trusted timestamp",
   });
 
+  // Bucket the extension namespaces present in this receipt. Unknown
+  // extensions are recorded honestly — a namespace-aware verifier can
+  // upgrade them to "understood" without touching integrity.
+  const understood = new Set<string>();
+  const unknown = new Set<string>();
+  for (const event of receipt.events) {
+    const classification = classifyEventType(event.type);
+    if (classification === "core") continue;
+    const namespace = reservedNamespaceOf(event.type);
+    if (namespace !== null) {
+      understood.add(namespace);
+    } else {
+      // Anchor an unknown extension by the URI or first two dotted
+      // segments — a stable identifier so consumers can group without
+      // parsing.
+      const anchor = event.type.includes(":")
+        ? event.type.split(":")[0] ?? event.type
+        : event.type.split(".").slice(0, 2).join(".");
+      unknown.add(anchor);
+    }
+  }
+
   const anySignatureFailed = signatures.some((s) => s.status === "failed");
   const ok = rootVerified && failures.length === 0 && !anySignatureFailed;
 
@@ -274,6 +297,10 @@ export async function verifyReceipt(
     reproducibility: {
       deterministic: "not-evaluated",
       nondeterministic: "not-claimed",
+    },
+    extensions: {
+      understood: Array.from(understood).sort(),
+      unknown: Array.from(unknown).sort(),
     },
     warnings,
   };

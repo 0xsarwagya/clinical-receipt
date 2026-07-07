@@ -51,7 +51,24 @@ export function isCoreEventType(value: string): value is CoreEventType {
   return (CORE_EVENT_TYPES as readonly string[]).includes(value);
 }
 
-/** Extension event types must be absolute URIs. */
+const REVERSE_DNS_SEGMENT = /^[a-zA-Z][a-zA-Z0-9-]*$/;
+
+/**
+ * Extension event types must be either:
+ *
+ *   1. an absolute URI (contains `:`), e.g. `https://example.org/x/v1`, OR
+ *   2. a reverse-DNS identifier with at least 3 dot-separated segments,
+ *      e.g. `org.hl7.fhir.resource.read`.
+ *
+ * Core event types (`input.observed`, `human.review.completed`) are two
+ * or three dotted segments and never conflict with (2) because they are
+ * excluded first — a reverse-DNS extension with a namespace like
+ * `com.acme.observed` remains valid.
+ */
 export function isExtensionEventType(value: string): boolean {
-  return value.includes(":") && !isCoreEventType(value);
+  if (isCoreEventType(value)) return false;
+  if (value.includes(":")) return true;
+  const segments = value.split(".");
+  if (segments.length < 3) return false;
+  return segments.every((segment) => REVERSE_DNS_SEGMENT.test(segment));
 }

@@ -1,0 +1,18 @@
+{
+  "description": "OperationOutcome commitment. The recorder maps HTTP 4xx → reason:'http-4xx' and hashes the outcome as normal FHIR JSON.",
+  "operationOutcome": {
+    "resourceType": "OperationOutcome",
+    "issue": [
+      {
+        "severity": "error",
+        "code": "not-found",
+        "diagnostics": "Patient/missing does not exist"
+      }
+    ]
+  },
+  "commitment": {
+    "algorithm": "sha-256",
+    "canonicalization": "fhir-json-r4@1",
+    "digest": "mhXS3llOcFj6NUrCIvD49pInd3aOiXlVkr4Chjoi8Pc"
+  }
+}

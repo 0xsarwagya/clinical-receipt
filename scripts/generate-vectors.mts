@@ -177,4 +177,201 @@ const pkg = await disclose(minimalReceipt, {
 });
 write("disclosure-basic.json", pkg);
 
+// ── FHIR vectors ──────────────────────────────────────────────────────
+// The FHIR extension registers its canonicalization alias + reserved
+// namespace when its barrel is imported. `fhirExtension` is the
+// entrypoint every level ultimately funnels through.
+const { fhirExtension } = await import("../src/fhir/operation.js");
+const { commitFhirValue } = await import("../src/fhir/commit.js");
+const { FHIR_CANONICALIZATION } = await import("../src/fhir/constants.js");
+
+const HAPI_BASE = "https://hapi.fhir.org/baseR4";
+const HAPI_SERVER = { id: "hapi-r4-public" };
+
+// A resource whose commitment we can compute unsalted so callers can
+// recompute deterministically.
+const FHIR_PATIENT = {
+  resourceType: "Patient",
+  id: "vector-1",
+  meta: { versionId: "3", lastUpdated: "2026-07-07T10:00:00.000Z" },
+  name: [{ family: "Vector", given: ["Alpha"] }],
+};
+const patientCommitment = await commitFhirValue(FHIR_PATIENT, { salt: null });
+write("fhir-read-r4.json", {
+  description:
+    "commitFhirValue over a Patient resource, unsalted. Any implementation MUST reproduce the digest below when hashing the canonical bytes of the resource on the left.",
+  canonicalization: FHIR_CANONICALIZATION,
+  resource: FHIR_PATIENT,
+  commitment: patientCommitment,
+});
+
+// Versioned-read: same resource, but the receipt event carries
+// `versionPinned: true` and the resource.versionId matches _history/N.
+const FHIR_PATIENT_V3 = FHIR_PATIENT;
+const vreadRun = await createReceipt({
+  workflow: { id: "fhir-vread-vector", version: "1.0.0" },
+  id: `rcpt_1_${"b".repeat(32)}`,
+  clock: fixedClock(Date.UTC(2026, 6, 7, 10, 0, 0, 0)),
+  random: fixedRandom(),
+});
+await fhirExtension(vreadRun, { server: HAPI_SERVER })
+  .operation({
+    method: "GET",
+    baseUrl: HAPI_BASE,
+    path: `/Patient/${FHIR_PATIENT_V3.id}/_history/3`,
+  })
+  .commitResponse({ status: 200, body: FHIR_PATIENT_V3 });
+const vreadReceipt = await vreadRun.finalize({});
+write("fhir-versioned-read-r4.json", vreadReceipt);
+
+// Search: a two-entry searchset. The pinned bundle commitment MUST
+// recompute from an identical Bundle body.
+const FHIR_SEARCHSET = {
+  resourceType: "Bundle",
+  type: "searchset",
+  total: 2,
+  link: [{ relation: "self", url: `${HAPI_BASE}/Observation?patient=vector-1` }],
+  entry: [
+    {
+      fullUrl: `${HAPI_BASE}/Observation/o1`,
+      resource: {
+        resourceType: "Observation",
+        id: "o1",
+        meta: { versionId: "1", lastUpdated: "2026-07-07T09:00:00.000Z" },
+        status: "final",
+        code: { coding: [{ system: "http://loinc.org", code: "718-7" }] },
+        subject: { reference: "Patient/vector-1" },
+      },
+      search: { mode: "match" },
+    },
+    {
+      fullUrl: `${HAPI_BASE}/Observation/o2`,
+      resource: {
+        resourceType: "Observation",
+        id: "o2",
+        meta: { versionId: "1", lastUpdated: "2026-07-07T09:05:00.000Z" },
+        status: "final",
+        code: { coding: [{ system: "http://loinc.org", code: "1988-5" }] },
+        subject: { reference: "Patient/vector-1" },
+      },
+      search: { mode: "match" },
+    },
+  ],
+};
+const searchsetCommitment = await commitFhirValue(FHIR_SEARCHSET, { salt: null });
+write("fhir-search-r4.json", {
+  description:
+    "Bundle commitment over a searchset. Order-sensitive: reversing the entry array MUST change the digest.",
+  canonicalization: FHIR_CANONICALIZATION,
+  bundle: FHIR_SEARCHSET,
+  commitment: searchsetCommitment,
+});
+
+// Create: the persisted resource carries the assigned version.
+const CI_SUBMITTED = {
+  resourceType: "ClinicalImpression",
+  status: "completed",
+  subject: { reference: "Patient/vector-1" },
+  summary: "Consider urgent cardiology review.",
+};
+const CI_PERSISTED = {
+  resourceType: "ClinicalImpression",
+  id: "789",
+  meta: { versionId: "1", lastUpdated: "2026-07-07T10:00:32.000Z" },
+  status: "completed",
+  subject: { reference: "Patient/vector-1" },
+  summary: "Consider urgent cardiology review.",
+};
+write("fhir-create-r4.json", {
+  description:
+    "A create event: submitted commitment ≠ persisted commitment when the server assigns an id/versionId. Both are pinned below.",
+  submitted: {
+    resource: CI_SUBMITTED,
+    commitment: await commitFhirValue(CI_SUBMITTED, { salt: null }),
+  },
+  persisted: {
+    resource: CI_PERSISTED,
+    commitment: await commitFhirValue(CI_PERSISTED, { salt: null }),
+  },
+});
+
+// Transaction: request Bundle → response Bundle.
+const TX_REQUEST = {
+  resourceType: "Bundle",
+  type: "transaction",
+  entry: [
+    {
+      request: { method: "POST", url: "ClinicalImpression" },
+      resource: CI_SUBMITTED,
+    },
+  ],
+};
+const TX_RESPONSE = {
+  resourceType: "Bundle",
+  type: "transaction-response",
+  entry: [
+    {
+      response: {
+        status: "201 Created",
+        location: `${HAPI_BASE}/ClinicalImpression/789/_history/1`,
+        etag: 'W/"1"',
+      },
+    },
+  ],
+};
+write("fhir-transaction-r4.json", {
+  description:
+    "Request and response Bundles are committed separately; the pair proves what was submitted vs what the server returned.",
+  submitted: {
+    bundle: TX_REQUEST,
+    commitment: await commitFhirValue(TX_REQUEST, { salt: null }),
+  },
+  response: {
+    bundle: TX_RESPONSE,
+    commitment: await commitFhirValue(TX_RESPONSE, { salt: null }),
+  },
+});
+
+// Error: OperationOutcome commitment. The receipt event carries the
+// short reason class + optional OperationOutcome commitment; both must
+// be recomputable.
+const OPERATION_OUTCOME = {
+  resourceType: "OperationOutcome",
+  issue: [
+    {
+      severity: "error",
+      code: "not-found",
+      diagnostics: "Patient/missing does not exist",
+    },
+  ],
+};
+write("fhir-error-r4.json", {
+  description:
+    "OperationOutcome commitment. The recorder maps HTTP 4xx → reason:'http-4xx' and hashes the outcome as normal FHIR JSON.",
+  operationOutcome: OPERATION_OUTCOME,
+  commitment: await commitFhirValue(OPERATION_OUTCOME, { salt: null }),
+});
+
+// Redacted query: proves privacy transforms produce a stable string
+// representation that is committed byte-for-byte.
+const REDACTED_RUN = await createReceipt({
+  workflow: { id: "fhir-redact-vector", version: "1.0.0" },
+  id: `rcpt_1_${"c".repeat(32)}`,
+  clock: fixedClock(Date.UTC(2026, 6, 7, 10, 0, 0, 0)),
+  random: fixedRandom(),
+});
+await fhirExtension(REDACTED_RUN, {
+  server: HAPI_SERVER,
+  privacy: { query: { patient: "hash", identifier: "redact" } },
+})
+  .operation({
+    method: "GET",
+    baseUrl: HAPI_BASE,
+    path: "/Observation",
+    query: { patient: "vector-1", identifier: "SSN-42" },
+  })
+  .commitResponse({ status: 200, body: FHIR_SEARCHSET });
+const redactedReceipt = await REDACTED_RUN.finalize({});
+write("fhir-redacted-query-r4.json", redactedReceipt);
+
 console.log(`wrote vectors to ${OUT}`);

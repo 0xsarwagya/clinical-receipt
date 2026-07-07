@@ -11,6 +11,7 @@ import {
   isCoreEventType,
   isExtensionEventType,
 } from "../core/constants.js";
+import { assertExtensionEventShape } from "../core/extensions.js";
 import {
   bytesToHex,
   decodeBase64Url,
@@ -334,10 +335,14 @@ export async function createReceipt(
       if (!isExtensionEventType(type)) {
         throw new ReceiptError({
           code: "INVALID_ARGUMENT",
-          message: "extension event types must be absolute URIs",
+          message:
+            "extension event types must be an absolute URI or a reverse-DNS name with 3+ segments",
           operation: "record",
         });
       }
+      // Reserved-namespace payloads are validated eagerly so an ill-shaped
+      // event never enters the DAG. Non-reserved namespaces are trusted.
+      assertExtensionEventShape(type, payload?.value, "record");
       return record(type, payload, recordOptions);
     },
     async finalize(finalizeOptions: FinalizeOptions = {}): Promise<ClinicalReceipt> {

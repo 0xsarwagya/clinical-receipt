@@ -17,10 +17,31 @@ security-critical and the specification is the primary artifact.
 - Offline CLI: `verify`, `verify --disclosure`, `inspect`, `diff`,
   `disclose`.
 
-## 0.2 — the practical release
+## 0.2 — the FHIR release (current)
 
-- FHIR bridge: emit FHIR AuditEvent and Provenance from a receipt on
-  request. The receipt remains authoritative; FHIR is a projection.
+- First-party FHIR R4 integration under `./fhir`:
+  - Instrumented fetch, instrumented client, and an explicit operation
+    API — one code path for all three levels.
+  - Reads, versioned reads, searches (first page), writes with
+    submitted vs persisted commitments, transactions, and error
+    events.
+  - Offline `verifyFHIR` — Layer 1 receipt integrity + Layer 2 FHIR
+    commitment comparison from resources the caller supplies.
+- Extension protocol formalized: reserved namespaces, per-namespace
+  payload validation, extension-aware verifier reports.
+- `fhir-json-r4@1` canonicalization pinned with 7 byte-exact vectors.
+- Bundle-size regression guard: root imports load zero FHIR code.
+
+Deferred to 0.3:
+- Layer-3 live FHIR store comparison (network-optional).
+- Multi-page search consumption + lazy-iteration adapter.
+- `run.scope(name, fn)` with async-context propagation.
+- CLI `fhir inspect | verify` subcommands.
+
+## 0.3 — the practical release
+
+- Layer-3 live FHIR verification (opt-in, never implicit).
+- Search pagination state machine + lazy consumption honesty.
 - KMS/HSM signer adapter with the same `ReceiptSigner` contract.
 - PostgreSQL storage adapter for `ReceiptStore`.
 - Field-level redaction disclosure profile (JSONPath, on committed

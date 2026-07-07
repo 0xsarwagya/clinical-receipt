@@ -1,0 +1,25 @@
+{
+  "description": "commitFhirValue over a Patient resource, unsalted. Any implementation MUST reproduce the digest below when hashing the canonical bytes of the resource on the left.",
+  "canonicalization": "fhir-json-r4@1",
+  "resource": {
+    "resourceType": "Patient",
+    "id": "vector-1",
+    "meta": {
+      "versionId": "3",
+      "lastUpdated": "2026-07-07T10:00:00.000Z"
+    },
+    "name": [
+      {
+        "family": "Vector",
+        "given": [
+          "Alpha"
+        ]
+      }
+    ]
+  },
+  "commitment": {
+    "algorithm": "sha-256",
+    "canonicalization": "fhir-json-r4@1",
+    "digest": "dyA3BA_nRt8SRhEukelYhNWeKM-TB8xc45I3HEHT_aY"
+  }
+}

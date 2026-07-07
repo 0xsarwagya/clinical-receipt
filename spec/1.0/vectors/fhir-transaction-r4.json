@@ -1,0 +1,50 @@
+{
+  "description": "Request and response Bundles are committed separately; the pair proves what was submitted vs what the server returned.",
+  "submitted": {
+    "bundle": {
+      "resourceType": "Bundle",
+      "type": "transaction",
+      "entry": [
+        {
+          "request": {
+            "method": "POST",
+            "url": "ClinicalImpression"
+          },
+          "resource": {
+            "resourceType": "ClinicalImpression",
+            "status": "completed",
+            "subject": {
+              "reference": "Patient/vector-1"
+            },
+            "summary": "Consider urgent cardiology review."
+          }
+        }
+      ]
+    },
+    "commitment": {
+      "algorithm": "sha-256",
+      "canonicalization": "fhir-json-r4@1",
+      "digest": "ohO2GLMXJpEBSn3qXBoosVlNDe4XCYbhcxM6WDqBrYA"
+    }
+  },
+  "response": {
+    "bundle": {
+      "resourceType": "Bundle",
+      "type": "transaction-response",
+      "entry": [
+        {
+          "response": {
+            "status": "201 Created",
+            "location": "https://hapi.fhir.org/baseR4/ClinicalImpression/789/_history/1",
+            "etag": "W/\"1\""
+          }
+        }
+      ]
+    },
+    "commitment": {
+      "algorithm": "sha-256",
+      "canonicalization": "fhir-json-r4@1",
+      "digest": "VX3L-oRvBhdb-fHfVyLx6Irwb1v49d-pedCdSbCeegg"
+    }
+  }
+}

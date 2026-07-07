@@ -1,0 +1,49 @@
+{
+  "resourceType": "Bundle",
+  "type": "searchset",
+  "total": 2,
+  "link": [
+    {
+      "relation": "self",
+      "url": "https://hapi.fhir.org/baseR4/Observation?patient=123&category=laboratory"
+    }
+  ],
+  "entry": [
+    {
+      "fullUrl": "https://hapi.fhir.org/baseR4/Observation/obs-a",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-a",
+        "meta": {
+          "versionId": "4",
+          "lastUpdated": "2026-07-02T08:00:00.000Z"
+        },
+        "status": "final",
+        "code": {
+          "coding": [{ "system": "http://loinc.org", "code": "718-7", "display": "Hemoglobin" }]
+        },
+        "subject": { "reference": "Patient/123" },
+        "valueQuantity": { "value": 11.2, "unit": "g/dL" }
+      },
+      "search": { "mode": "match" }
+    },
+    {
+      "fullUrl": "https://hapi.fhir.org/baseR4/Observation/obs-b",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-b",
+        "meta": {
+          "versionId": "2",
+          "lastUpdated": "2026-07-02T08:05:00.000Z"
+        },
+        "status": "final",
+        "code": {
+          "coding": [{ "system": "http://loinc.org", "code": "1988-5", "display": "CRP" }]
+        },
+        "subject": { "reference": "Patient/123" },
+        "valueQuantity": { "value": 14, "unit": "mg/L" }
+      },
+      "search": { "mode": "match" }
+    }
+  ]
+}

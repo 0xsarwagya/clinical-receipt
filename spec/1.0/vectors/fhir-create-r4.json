@@ -1,0 +1,38 @@
+{
+  "description": "A create event: submitted commitment ≠ persisted commitment when the server assigns an id/versionId. Both are pinned below.",
+  "submitted": {
+    "resource": {
+      "resourceType": "ClinicalImpression",
+      "status": "completed",
+      "subject": {
+        "reference": "Patient/vector-1"
+      },
+      "summary": "Consider urgent cardiology review."
+    },
+    "commitment": {
+      "algorithm": "sha-256",
+      "canonicalization": "fhir-json-r4@1",
+      "digest": "CNyDTl4Lxft9DUNL3SsOf89GSwOWcSnLfNexLF0lnZc"
+    }
+  },
+  "persisted": {
+    "resource": {
+      "resourceType": "ClinicalImpression",
+      "id": "789",
+      "meta": {
+        "versionId": "1",
+        "lastUpdated": "2026-07-07T10:00:32.000Z"
+      },
+      "status": "completed",
+      "subject": {
+        "reference": "Patient/vector-1"
+      },
+      "summary": "Consider urgent cardiology review."
+    },
+    "commitment": {
+      "algorithm": "sha-256",
+      "canonicalization": "fhir-json-r4@1",
+      "digest": "Ohtya26nuFMZRRHOZE7O56Qh4_57NCXRWu7mRfjfQQc"
+    }
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "specification": {
+    "name": "clinical-receipt",
+    "version": "1.0"
+  },
+  "receipt": {
+    "id": "rcpt_1_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "createdAt": "2026-07-07T10:00:00.000Z",
+    "finalizedAt": "2026-07-07T10:00:01.000Z"
+  },
+  "workflow": {
+    "id": "fhir-vread-vector",
+    "version": "1.0.0"
+  },
+  "events": [
+    {
+      "id": "evt_1_90ff5dea1b360fdd58b113ca5cd2122d556c454839643bc28af0691cd9f89ca2",
+      "type": "run.started",
+      "sequence": 0,
+      "recordedAt": "2026-07-07T10:00:00.250Z",
+      "parentIds": [],
+      "payload": {
+        "mode": "embedded",
+        "commitment": {
+          "algorithm": "sha-256",
+          "canonicalization": "jcs@1",
+          "digest": "zUAFGco3x21PI6jFU-U1l04JgcQb8cwUfR--8vEHtcs"
+        },
+        "value": {
+          "workflow": {
+            "id": "fhir-vread-vector",
+            "version": "1.0.0"
+          }
+        },
+        "salt": "AAcOFRwjKjE4P0ZNVFtiaQ"
+      },
+      "commitment": {
+        "algorithm": "sha-256",
+        "canonicalization": "clinical-receipt-event@1",
+        "digest": "kP9d6hs2D91YsRPKXNISLVVsRUg5ZDvCivBpHNn4nKI"
+      }
+    },
+    {
+      "id": "evt_1_62f7e12d716c01ec5743608f28586f54b19a735c5a87e7e05d77b5755a40d39b",
+      "type": "org.hl7.fhir.resource.vread",
+      "sequence": 1,
+      "recordedAt": "2026-07-07T10:00:00.500Z",
+      "parentIds": [
+        "evt_1_90ff5dea1b360fdd58b113ca5cd2122d556c454839643bc28af0691cd9f89ca2"
+      ],
+      "payload": {
+        "mode": "embedded",
+        "commitment": {
+          "algorithm": "sha-256",
+          "canonicalization": "jcs@1",
+          "digest": "U4AIIb6RmLW31HsVoaJZN6LvCn5aUG7QXzJrOArdWnA"
+        },
+        "value": {
+          "extensionVersion": "1",
+          "fhirVersion": "R4",
+          "server": {
+            "id": "hapi-r4-public"
+          },
+          "operation": "vread",
+          "resource": {
+            "type": "Patient",
+            "id": "vector-1",
+            "versionId": "3",
+            "lastUpdated": "2026-07-07T10:00:00.000Z"
+          },
+          "commitment": {
+            "algorithm": "sha-256",
+            "canonicalization": "fhir-json-r4@1",
+            "digest": "tfS5xK3E5yVbUAyLT2Pb9vJKfMRLg7rRQuwPJf2_oAw"
+          },
+          "versionPinned": true
+        },
+        "salt": "AQgPFh0kKzI5QEdOVVxjag"
+      },
+      "commitment": {
+        "algorithm": "sha-256",
+        "canonicalization": "clinical-receipt-event@1",
+        "digest": "YvfhLXFsAexXQ2CPKFhvVLGac1xah-fgXXe1dVpA05s"
+      }
+    },
+    {
+      "id": "evt_1_3a511be20b780cf62e20923de18a8e8407719071a5c4a9f2b9f02e5aa52df0d5",
+      "type": "run.finalized",
+      "sequence": 2,
+      "recordedAt": "2026-07-07T10:00:00.750Z",
+      "parentIds": [
+        "evt_1_62f7e12d716c01ec5743608f28586f54b19a735c5a87e7e05d77b5755a40d39b"
+      ],
+      "payload": {
+        "mode": "embedded",
+        "commitment": {
+          "algorithm": "sha-256",
+          "canonicalization": "jcs@1",
+          "digest": "6dFGd_I-KljYjh_3Da3DokXmxAnfjg49dNCDZM3c2uc"
+        },
+        "value": {
+          "eventCount": 3
+        },
+        "salt": "AgkQFx4lLDM6QUhPVl1kaw"
+      },
+      "commitment": {
+        "algorithm": "sha-256",
+        "canonicalization": "clinical-receipt-event@1",
+        "digest": "OlEb4gt4DPYuIJI94YqOhAdxkHGlxKnyufAuWqUt8NU"
+      }
+    }
+  ],
+  "commitments": {
+    "tree": "clinical-receipt-merkle@1",
+    "leafCount": 4,
+    "root": {
+      "algorithm": "sha-256",
+      "structure": "clinical-receipt-merkle@1",
+      "digest": "xE2dVM9e-shVsnqucK-riLtQgsSZa_zrp0mTPUgmtU0"
+    }
+  },
+  "signatures": []
+}

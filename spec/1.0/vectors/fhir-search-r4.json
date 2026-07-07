@@ -1,0 +1,74 @@
+{
+  "description": "Bundle commitment over a searchset. Order-sensitive: reversing the entry array MUST change the digest.",
+  "canonicalization": "fhir-json-r4@1",
+  "bundle": {
+    "resourceType": "Bundle",
+    "type": "searchset",
+    "total": 2,
+    "link": [
+      {
+        "relation": "self",
+        "url": "https://hapi.fhir.org/baseR4/Observation?patient=vector-1"
+      }
+    ],
+    "entry": [
+      {
+        "fullUrl": "https://hapi.fhir.org/baseR4/Observation/o1",
+        "resource": {
+          "resourceType": "Observation",
+          "id": "o1",
+          "meta": {
+            "versionId": "1",
+            "lastUpdated": "2026-07-07T09:00:00.000Z"
+          },
+          "status": "final",
+          "code": {
+            "coding": [
+              {
+                "system": "http://loinc.org",
+                "code": "718-7"
+              }
+            ]
+          },
+          "subject": {
+            "reference": "Patient/vector-1"
+          }
+        },
+        "search": {
+          "mode": "match"
+        }
+      },
+      {
+        "fullUrl": "https://hapi.fhir.org/baseR4/Observation/o2",
+        "resource": {
+          "resourceType": "Observation",
+          "id": "o2",
+          "meta": {
+            "versionId": "1",
+            "lastUpdated": "2026-07-07T09:05:00.000Z"
+          },
+          "status": "final",
+          "code": {
+            "coding": [
+              {
+                "system": "http://loinc.org",
+                "code": "1988-5"
+              }
+            ]
+          },
+          "subject": {
+            "reference": "Patient/vector-1"
+          }
+        },
+        "search": {
+          "mode": "match"
+        }
+      }
+    ]
+  },
+  "commitment": {
+    "algorithm": "sha-256",
+    "canonicalization": "fhir-json-r4@1",
+    "digest": "mPt0aZDzS0gLTH7Zudxvxgb1UeDvfp360orgrst8wJk"
+  }
+}

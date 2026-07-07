@@ -16,7 +16,12 @@ export type ReceiptErrorCode =
   | "SIGNING_FAILED"
   | "KEY_IMPORT_FAILED"
   | "IO_ERROR"
-  | "USAGE";
+  | "USAGE"
+  | "MALFORMED_EXTENSION"
+  | "PARTIAL_INSTRUMENTATION_UNSAFE"
+  | "UNSAFE_HEADER"
+  | "UNSAFE_QUERY_POLICY"
+  | "FHIR_RESPONSE_UNCONSUMABLE";
 
 export type ReceiptOperation =
   | "canonicalize"
@@ -29,7 +34,12 @@ export type ReceiptOperation =
   | "verifyDisclosure"
   | "parse"
   | "importKey"
-  | "cli";
+  | "cli"
+  | "fhirOperation"
+  | "fhirFetch"
+  | "fhirClient"
+  | "verifyFhir"
+  | "inspectFhir";
 
 /**
  * Every failure is typed. Messages may name field paths, types, and

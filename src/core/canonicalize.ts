@@ -13,16 +13,45 @@ export const CANONICALIZATION_PROFILES = [
 export type CanonicalizationProfile = (typeof CANONICALIZATION_PROFILES)[number];
 
 /**
- * Produces the canonical bytes a commitment is computed over. Pure
- * dispatch — there is no mutable registry, so a verifier's behaviour can
- * never be changed at runtime.
+ * Alias registry. An alias names an existing base profile so that a
+ * commitment tag can carry FHIR-specific expectations without changing
+ * bytes. Registration is idempotent (same alias → same base is a
+ * no-op); re-registering an alias to a different base throws. Aliases
+ * cannot be removed.
+ */
+const ALIASES = new Map<string, CanonicalizationProfile>();
+
+export function registerCanonicalizationProfile(
+  alias: string,
+  base: CanonicalizationProfile,
+): void {
+  const existing = ALIASES.get(alias);
+  if (existing !== undefined) {
+    if (existing !== base) {
+      throw new ReceiptError({
+        code: "UNSUPPORTED_CANONICALIZATION",
+        message: `canonicalization alias ${alias} already registered under ${existing}`,
+        operation: "canonicalize",
+      });
+    }
+    return;
+  }
+  ALIASES.set(alias, base);
+}
+
+/**
+ * Produces the canonical bytes a commitment is computed over. Aliases
+ * are resolved to their base profile before dispatch, so pinned vectors
+ * stay valid across the alias table.
  */
 export function canonicalize(
   profile: string,
   value: unknown,
   operation: ReceiptOperation = "canonicalize",
 ): Uint8Array<ArrayBuffer> {
-  switch (profile) {
+  const alias = ALIASES.get(profile);
+  const resolved = alias ?? profile;
+  switch (resolved) {
     case "jcs@1":
     case "clinical-receipt-event@1":
       // The event profile IS jcs@1 applied to the committed envelope form;

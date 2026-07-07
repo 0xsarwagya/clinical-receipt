@@ -60,6 +60,26 @@ const report = await verifyReceipt(receipt, { keys: [key] });
 // report.ok, report.integrity, report.signatures, report.warnings, ...
 ```
 
+## FHIR
+
+Since v0.2, wrap your FHIR access to commit which exact resource
+versions the AI saw:
+
+```ts
+import { instrumentFHIRFetch, verifyFHIR } from "@0xsarwagya/clinical-receipt/fhir";
+
+const fhirFetch = instrumentFHIRFetch(globalThis.fetch, {
+  run,
+  baseUrl: "https://hapi.fhir.org/baseR4",
+});
+const patient = await fhirFetch(`${BASE}/Patient/123`).then((r) => r.json());
+// reads, searches, and writes are now part of the receipt.
+```
+
+The wire format for the `org.hl7.fhir` extension is pinned in
+[`spec/1.0/fhir.md`](./spec/1.0/fhir.md); vectors sit under
+[`spec/1.0/vectors/fhir-*.json`](./spec/1.0/vectors/).
+
 ## CLI
 
 ```

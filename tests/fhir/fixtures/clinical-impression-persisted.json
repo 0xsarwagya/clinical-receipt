@@ -1,0 +1,11 @@
+{
+  "resourceType": "ClinicalImpression",
+  "id": "789",
+  "meta": {
+    "versionId": "1",
+    "lastUpdated": "2026-07-07T10:00:32.000Z"
+  },
+  "status": "completed",
+  "subject": { "reference": "Patient/123" },
+  "summary": "Consider urgent cardiology review."
+}

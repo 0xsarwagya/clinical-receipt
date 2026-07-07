@@ -41,6 +41,16 @@ export interface VerificationReport {
     deterministic: "not-evaluated";
     nondeterministic: "not-claimed";
   };
+  /**
+   * Which extension namespaces this verifier understood semantically vs
+   * simply verified for integrity. Unknown extensions are NEVER an
+   * integrity failure — a namespace-aware verifier can layer richer
+   * checks on top.
+   */
+  extensions: {
+    understood: string[];
+    unknown: string[];
+  };
   warnings: VerificationWarning[];
 }
 
