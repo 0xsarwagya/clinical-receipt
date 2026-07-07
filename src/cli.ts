@@ -17,6 +17,8 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { parseReceipt } from "./verify/parse.js";
 import { verifyReceipt } from "./verify/receipt.js";
 import { verifyDisclosure } from "./verify/disclosure.js";
+import { verifyFHIR } from "./verify/fhir.js";
+import { inspectFHIR } from "./fhir/inspect.js";
 import { importVerificationKey, type VerificationKey } from "./signing/webcrypto.js";
 import { disclose, type DisclosurePackage } from "./disclosure/disclose.js";
 import { SPEC_VERSION } from "./core/constants.js";
@@ -32,6 +34,10 @@ usage:
   clinical-receipt inspect <receipt.json>    [--json]
   clinical-receipt diff <a.json> <b.json>    [--json]
   clinical-receipt disclose <receipt.json>   --event <pattern>... [--redact <pattern>...] [--out <path>]
+
+  clinical-receipt fhir inspect <receipt.json>          [--json]
+  clinical-receipt fhir verify <receipt.json>           [--key <jwk.json>...] [--resource <ref>=<path>...] [--json]
+  clinical-receipt fhir diff <a.json> <b.json>          [--json]
 
 Exit codes:
   0  ok
@@ -304,6 +310,204 @@ async function commandDisclose(args: ParsedArgs): Promise<never> {
   }
 }
 
+function commandFhirInspect(args: ParsedArgs): never {
+  // Subcommand form: `fhir inspect <path>` — positional[0] is "inspect".
+  const target = args.positional[1];
+  if (target === undefined) {
+    process.stderr.write("fhir inspect: missing path to receipt\n");
+    process.exit(2);
+  }
+  let parsed: ClinicalReceipt;
+  try {
+    parsed = parseReceipt(readJson(target), "parse");
+  } catch (error) {
+    process.stderr.write(
+      `not a valid receipt: ${isReceiptError(error) ? error.code : String(error)}\n`,
+    );
+    process.exit(2);
+  }
+  const trace = inspectFHIR(parsed);
+  if (args.bool.has("json")) {
+    process.stdout.write(JSON.stringify(trace) + "\n");
+    process.exit(0);
+  }
+  const lines: string[] = [];
+  lines.push(`receipt: ${parsed.receipt.id}`);
+  lines.push(`servers: ${trace.servers.length}`);
+  for (const server of trace.servers) {
+    lines.push(`  · ${server.id}${server.baseUrl !== undefined ? ` (${server.baseUrl})` : ""}`);
+  }
+  lines.push(`reads: ${trace.reads.length}`);
+  for (const read of trace.reads) {
+    const version = read.resource.versionId !== undefined ? `/_history/${read.resource.versionId}` : "";
+    const idStr = read.resource.id ?? read.resource.idCommitment ?? "?";
+    lines.push(`  ${read.operation} · ${read.resource.type}/${idStr}${version}`);
+  }
+  lines.push(`searches: ${trace.searches.length}`);
+  for (const search of trace.searches) {
+    lines.push(
+      `  ${search.resourceType} · ${search.resources.length} resources · pagination=${search.pagination}${
+        search.total !== undefined ? ` · total=${search.total}` : ""
+      }`,
+    );
+  }
+  lines.push(`writes: ${trace.writes.length}`);
+  for (const write of trace.writes) {
+    const persisted = write.persisted;
+    const version = persisted?.versionId !== undefined ? `/_history/${persisted.versionId}` : "";
+    const idStr = persisted?.id ?? persisted?.idCommitment ?? "?";
+    lines.push(`  ${write.operation} · ${write.target.type}${persisted !== undefined ? `/${idStr}${version}` : ""}`);
+  }
+  lines.push(`transactions: ${trace.transactions.length}`);
+  for (const tx of trace.transactions) {
+    lines.push(`  ${tx.operation} · ${tx.entryCount} entries`);
+  }
+  lines.push(`errors: ${trace.errors.length}`);
+  for (const err of trace.errors) {
+    lines.push(
+      `  ${err.target.method} ${err.target.path} · reason=${err.reason}${
+        err.httpStatus !== undefined ? ` · http=${err.httpStatus}` : ""
+      }`,
+    );
+  }
+  process.stdout.write(lines.join("\n") + "\n");
+  process.exit(0);
+}
+
+async function commandFhirVerify(args: ParsedArgs): Promise<never> {
+  const target = args.positional[1];
+  if (target === undefined) {
+    process.stderr.write("fhir verify: missing path to receipt\n");
+    process.exit(2);
+  }
+  const keys = await loadKeys(args.flags);
+  const suppliedResources: Record<string, unknown> = {};
+  for (const spec of args.flags.get("resource") ?? []) {
+    const eq = spec.indexOf("=");
+    if (eq === -1) {
+      process.stderr.write(
+        `fhir verify: --resource must be <ref>=<path>, got ${JSON.stringify(spec)}\n`,
+      );
+      process.exit(2);
+    }
+    const ref = spec.slice(0, eq);
+    const path = spec.slice(eq + 1);
+    suppliedResources[ref] = readJson(path);
+  }
+  const raw = readJson(target);
+  try {
+    const report = await verifyFHIR(raw as ClinicalReceipt, {
+      keys,
+      resources: suppliedResources,
+    });
+    if (args.bool.has("json")) {
+      process.stdout.write(JSON.stringify(report) + "\n");
+      process.exit(report.ok ? 0 : 1);
+    }
+    const lines: string[] = [];
+    lines.push(reportSummary(report).trimEnd());
+    lines.push(
+      `fhir.commitments: ${report.fhir.commitments} (${report.fhir.resources.length} resources)`,
+    );
+    lines.push(`fhir.understood: ${report.fhir.understood}`);
+    for (const check of report.fhir.resources) {
+      lines.push(`  ${check.reference}: ${check.commitment}`);
+    }
+    process.stdout.write(lines.join("\n") + "\n");
+    process.exit(report.ok ? 0 : 1);
+  } catch (error) {
+    if (isReceiptError(error)) {
+      process.stderr.write(
+        `fhir verify failed: ${error.code} — ${error.message}\n`,
+      );
+      process.exit(1);
+    }
+    throw error;
+  }
+}
+
+function commandFhirDiff(args: ParsedArgs): never {
+  const [, pathA, pathB] = args.positional;
+  if (pathA === undefined || pathB === undefined) {
+    process.stderr.write("fhir diff: needs two receipt paths\n");
+    process.exit(2);
+  }
+  let a: ClinicalReceipt;
+  let b: ClinicalReceipt;
+  try {
+    a = parseReceipt(readJson(pathA), "parse");
+    b = parseReceipt(readJson(pathB), "parse");
+  } catch (error) {
+    process.stderr.write(
+      `could not parse: ${isReceiptError(error) ? error.code : String(error)}\n`,
+    );
+    process.exit(2);
+  }
+  const traceA = inspectFHIR(a);
+  const traceB = inspectFHIR(b);
+
+  function keyForResource(r: {
+    type: string;
+    id?: string;
+    idCommitment?: string;
+    versionId?: string;
+  }): string {
+    const idPart = r.id ?? r.idCommitment ?? "?";
+    return r.versionId !== undefined
+      ? `${r.type}/${idPart}/_history/${r.versionId}`
+      : `${r.type}/${idPart}`;
+  }
+  const readsA = new Set(traceA.reads.map((r) => keyForResource(r.resource)));
+  const readsB = new Set(traceB.reads.map((r) => keyForResource(r.resource)));
+  const writesA = new Set(traceA.writes.map((w) => keyForResource({ ...w.target, ...w.persisted })));
+  const writesB = new Set(traceB.writes.map((w) => keyForResource({ ...w.target, ...w.persisted })));
+
+  const diff = {
+    readsOnlyInA: [...readsA].filter((r) => !readsB.has(r)),
+    readsOnlyInB: [...readsB].filter((r) => !readsA.has(r)),
+    writesOnlyInA: [...writesA].filter((w) => !writesB.has(w)),
+    writesOnlyInB: [...writesB].filter((w) => !writesA.has(w)),
+    searchCountA: traceA.searches.length,
+    searchCountB: traceB.searches.length,
+  };
+  if (args.bool.has("json")) {
+    process.stdout.write(JSON.stringify(diff) + "\n");
+    process.exit(0);
+  }
+  const lines: string[] = [];
+  lines.push(`reads only in A: ${diff.readsOnlyInA.length}`);
+  for (const r of diff.readsOnlyInA) lines.push(`  A: ${r}`);
+  lines.push(`reads only in B: ${diff.readsOnlyInB.length}`);
+  for (const r of diff.readsOnlyInB) lines.push(`  B: ${r}`);
+  lines.push(`writes only in A: ${diff.writesOnlyInA.length}`);
+  for (const w of diff.writesOnlyInA) lines.push(`  A: ${w}`);
+  lines.push(`writes only in B: ${diff.writesOnlyInB.length}`);
+  for (const w of diff.writesOnlyInB) lines.push(`  B: ${w}`);
+  lines.push(`searches: A=${diff.searchCountA} B=${diff.searchCountB}`);
+  process.stdout.write(lines.join("\n") + "\n");
+  process.exit(0);
+}
+
+async function commandFhir(args: ParsedArgs): Promise<void> {
+  const sub = args.positional[0];
+  switch (sub) {
+    case "inspect":
+      commandFhirInspect(args);
+      return;
+    case "verify":
+      await commandFhirVerify(args);
+      return;
+    case "diff":
+      commandFhirDiff(args);
+      return;
+    default:
+      process.stderr.write(
+        `fhir: unknown subcommand ${JSON.stringify(sub ?? "")}\n\n${USAGE}`,
+      );
+      process.exit(2);
+  }
+}
+
 async function main() {
   const args = parseArgs(process.argv);
   switch (args.command) {
@@ -318,6 +522,9 @@ async function main() {
       break;
     case "disclose":
       await commandDisclose(args);
+      break;
+    case "fhir":
+      await commandFhir(args);
       break;
     default:
       process.stderr.write(`unknown command: ${args.command}\n\n${USAGE}`);

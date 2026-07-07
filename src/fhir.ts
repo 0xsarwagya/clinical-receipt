@@ -7,10 +7,11 @@
  * code. See `tests/bundle-size.test.ts`.
  */
 
-// Side effects: register the fhir-json-r4@1 canonicalization alias and
-// the reserved namespace validator. Importing this barrel is enough.
+// Register both side effects explicitly so a bundler cannot drop them.
+// Both functions are idempotent.
 import "./fhir/canonicalize.js";
-import "./fhir/register.js";
+import { registerFhirNamespace } from "./fhir/register.js";
+registerFhirNamespace();
 
 export {
   FHIR_CANONICALIZATION,

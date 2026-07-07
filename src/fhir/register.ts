@@ -148,7 +148,26 @@ function validateFhirPayload(
   }
 }
 
-registerReservedNamespace({
-  namespace: FHIR_NAMESPACE,
-  validate: (kind, payload, operation) => validateFhirPayload(kind, payload, operation),
-});
+let registered = false;
+
+/**
+ * Register the `org.hl7.fhir` reserved namespace on the receiver. Called
+ * eagerly by every entry point that needs FHIR semantics (the /fhir
+ * barrel and the FHIR verifier). Explicit instead of side-effectful so
+ * a tree-shaker cannot drop it silently.
+ */
+export function registerFhirNamespace(): void {
+  if (registered) return;
+  registered = true;
+  registerReservedNamespace({
+    namespace: FHIR_NAMESPACE,
+    validate: (kind, payload, operation) =>
+      validateFhirPayload(kind, payload, operation),
+  });
+}
+
+// Also register at module load — harmless if the module actually gets
+// loaded, and callers who import the barrel get the registration
+// automatically. Tree-shakers may drop the load-time call but callers
+// that import `registerFhirNamespace` and invoke it explicitly are safe.
+registerFhirNamespace();
