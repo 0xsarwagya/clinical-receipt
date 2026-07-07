@@ -1,0 +1,88 @@
+{
+  "specification": {
+    "name": "clinical-receipt",
+    "version": "1.0"
+  },
+  "disclosure": {
+    "id": "disc_1_00070e151c232a31383f464d545b6269",
+    "createdAt": "2026-07-07T10:00:30.000Z",
+    "receiptId": "rcpt_1_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "root": {
+      "algorithm": "sha-256",
+      "structure": "clinical-receipt-merkle@1",
+      "digest": "voM9y4Sr29Z-YjNWyfvN6UwvFGxBMGmiwPWs-HjIew8"
+    }
+  },
+  "header": {
+    "value": {
+      "type": "clinical-receipt-header",
+      "specification": {
+        "name": "clinical-receipt",
+        "version": "1.0"
+      },
+      "receiptId": "rcpt_1_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "createdAt": "2026-07-07T10:00:00.000Z",
+      "finalizedAt": "2026-07-07T10:00:01.500Z",
+      "workflow": {
+        "id": "minimal",
+        "version": "1.0.0"
+      },
+      "hashAlgorithm": "sha-256",
+      "eventCount": 5
+    },
+    "proof": {
+      "structure": "clinical-receipt-merkle@1",
+      "leafIndex": 0,
+      "treeSize": 6,
+      "path": [
+        "XlNdM7FzrFlgrFMV-M_aOTsJ-tErcpjE1AakVURR7i8",
+        "1h1dTXNxdZ7BPpaZE4LPDnjoT7ItRdszTsFXF_ztt4g",
+        "msj-ezgODJ29nMfue5euA6YIuAhCWjF4bHeDFbXEctc"
+      ]
+    }
+  },
+  "events": [
+    {
+      "envelope": {
+        "id": "evt_1_adb09b6f8c5b70932722d63b727419c0ccb779b0f9755c51f4739b5a4ed6a640",
+        "type": "output.committed",
+        "sequence": 3,
+        "recordedAt": "2026-07-07T10:00:01.000Z",
+        "parentIds": [
+          "evt_1_18f8c0077159e9fb22465a4df956f6a41fb909899ac094b4a70af8e77b3de7db"
+        ],
+        "payload": {
+          "mode": "commitment",
+          "commitment": {
+            "algorithm": "sha-256",
+            "canonicalization": "jcs@1",
+            "digest": "3N7dS4j3ZFQffocLsmsdoCjs8RXFimtqbVrU0aFVVc4"
+          }
+        },
+        "commitment": {
+          "algorithm": "sha-256",
+          "canonicalization": "clinical-receipt-event@1",
+          "digest": "rbCbb4xbcJMnItY7cnQZwMy3ebD5dVxR9HObWk7WpkA"
+        }
+      },
+      "proof": {
+        "structure": "clinical-receipt-merkle@1",
+        "leafIndex": 4,
+        "treeSize": 6,
+        "path": [
+          "aw4uJTmrR_Qo7dKQLa_oHJLNkUkRJecYVckzy3b38qg",
+          "bCil0InWH7zB4oxyOGnIiibDxaOQhOC80PKXdvda5Vk"
+        ]
+      }
+    }
+  ],
+  "leaves": [
+    "eyJjcmVhdGVkQXQiOiIyMDI2LTA3LTA3VDEwOjAwOjAwLjAwMFoiLCJldmVudENvdW50Ijo1LCJmaW5hbGl6ZWRBdCI6IjIwMjYtMDctMDdUMTA6MDA6MDEuNTAwWiIsImhhc2hBbGdvcml0aG0iOiJzaGEtMjU2IiwicmVjZWlwdElkIjoicmNwdF8xX2FhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhIiwic3BlY2lmaWNhdGlvbiI6eyJuYW1lIjoiY2xpbmljYWwtcmVjZWlwdCIsInZlcnNpb24iOiIxLjAifSwidHlwZSI6ImNsaW5pY2FsLXJlY2VpcHQtaGVhZGVyIiwid29ya2Zsb3ciOnsiaWQiOiJtaW5pbWFsIiwidmVyc2lvbiI6IjEuMC4wIn19",
+    "hiOk5tI6JdrH_7PVfliy5m5OmJwC2KxHDnwAy89PnHg",
+    "9xZZv2d4-ioO7_eoOUQmlP720xWSrAUILGhmE_clAis",
+    "GPjAB3FZ6fsiRlpN-Vb2pB-5CYmawJS0pwr453s959s",
+    "rbCbb4xbcJMnItY7cnQZwMy3ebD5dVxR9HObWk7WpkA",
+    "hs22A0qJWs4M_JK_lwFEfBvqHdjVNiASAYwGXAan1jg"
+  ],
+  "signatures": []
+}

@@ -1,0 +1,76 @@
+{
+  "description": "RFC 6962-style Merkle tree with receipt-scoped ctx. Split at largest power of two < n (no duplication).",
+  "receiptId": "rcpt_1_00000000000000000000000000000000",
+  "leafCount": 5,
+  "rootBytes": "deivmPFCKjFR-PtGRf8MQ0mBYjJO-9QtfQ2iOHQFX64",
+  "proofs": [
+    {
+      "leafIndex": 0,
+      "leafBytesHex": "00000001",
+      "proof": {
+        "structure": "clinical-receipt-merkle@1",
+        "leafIndex": 0,
+        "treeSize": 5,
+        "path": [
+          "-MbRXePKLwW9FzA45tR8WJOdiGEng-5MYDp3VPcx0PM",
+          "Fk5PX_QV-eoQG3QKaHAk0Y-AVV_dD4y8nTYe9OOmQJA",
+          "UTqv8qDQvbzGFQIc1_661VGdBg0GXawXrQNMzksKxwU"
+        ]
+      }
+    },
+    {
+      "leafIndex": 1,
+      "leafBytesHex": "00000002",
+      "proof": {
+        "structure": "clinical-receipt-merkle@1",
+        "leafIndex": 1,
+        "treeSize": 5,
+        "path": [
+          "RH5qpwexlEUBciJCbMSeEdEzZDxM_Zlsg6gTXFrtQIo",
+          "Fk5PX_QV-eoQG3QKaHAk0Y-AVV_dD4y8nTYe9OOmQJA",
+          "UTqv8qDQvbzGFQIc1_661VGdBg0GXawXrQNMzksKxwU"
+        ]
+      }
+    },
+    {
+      "leafIndex": 2,
+      "leafBytesHex": "00000003",
+      "proof": {
+        "structure": "clinical-receipt-merkle@1",
+        "leafIndex": 2,
+        "treeSize": 5,
+        "path": [
+          "rJaNZse7ohRw0mbh_2N9p4gkHluh7m6darnQ80GI4Sw",
+          "DNTToa1tbRya0CM2EhcbfsX4Tv8C0G94WLvW3N-lUek",
+          "UTqv8qDQvbzGFQIc1_661VGdBg0GXawXrQNMzksKxwU"
+        ]
+      }
+    },
+    {
+      "leafIndex": 3,
+      "leafBytesHex": "00000004",
+      "proof": {
+        "structure": "clinical-receipt-merkle@1",
+        "leafIndex": 3,
+        "treeSize": 5,
+        "path": [
+          "S9I_TJRZVplE73N6Ov-Y0I4dd8LzKluwq2p4ica7aw8",
+          "DNTToa1tbRya0CM2EhcbfsX4Tv8C0G94WLvW3N-lUek",
+          "UTqv8qDQvbzGFQIc1_661VGdBg0GXawXrQNMzksKxwU"
+        ]
+      }
+    },
+    {
+      "leafIndex": 4,
+      "leafBytesHex": "00000005",
+      "proof": {
+        "structure": "clinical-receipt-merkle@1",
+        "leafIndex": 4,
+        "treeSize": 5,
+        "path": [
+          "5bNyhHnqZ73Pcp8Nn5cV5AtOF4l73J-lu-5841CWCyE"
+        ]
+      }
+    }
+  ]
+}

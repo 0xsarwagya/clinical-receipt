@@ -1,0 +1,14 @@
+{
+  "description": "SHA-256(f(tag)||f(alg)||f(canon)||f(salt)||f(canonicalBytes)). Fields are length-prefixed with uint32BE.",
+  "input": {
+    "code": "I50.9",
+    "system": "ICD-10"
+  },
+  "canonicalization": "jcs@1",
+  "saltHex": "0123456789abcdef0123456789abcdef",
+  "commitment": {
+    "algorithm": "sha-256",
+    "canonicalization": "jcs@1",
+    "digest": "_kEugeMYTc_fRn-XngkhQdvDewsWLqL6upc2by_e7wE"
+  }
+}

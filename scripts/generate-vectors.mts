@@ -1,0 +1,180 @@
+// TEMPORARY-ish — regenerate spec vectors from the real implementation.
+// Run: `pnpm tsx scripts/generate-vectors.mts` — pins land in
+// spec/1.0/vectors/*.json. Files are committed as part of the spec; any
+// diff is a protocol break, not a rewrite.
+//
+// Vectors are pinned in the DECODE direction for signatures (WebKit hedges
+// Ed25519, ECDSA is randomized) and byte-exact everywhere else.
+
+import { writeFileSync, mkdirSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { jcsSerialize } from "../src/core/jcs.js";
+import { canonicalize } from "../src/core/canonicalize.js";
+import { commitPayload } from "../src/core/commitment.js";
+import { sha256 } from "../src/core/hash.js";
+import {
+  bytesToHex,
+  decodeBase64Url,
+  encodeBase64Url,
+  hexToBytes,
+} from "../src/core/encoding.js";
+import { merkleRoot, proveInclusion } from "../src/core/merkle.js";
+import { buildHeader, headerLeafBytes } from "../src/core/header.js";
+import { signaturePayloadBytes, deriveKeyId } from "../src/signing/signer.js";
+import { createReceipt } from "../src/recorder/receipt.js";
+import { createEd25519Signer } from "../src/signing/webcrypto.js";
+import { disclose } from "../src/disclosure/disclose.js";
+import { fixedClock, fixedRandom } from "../tests/fixtures.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const OUT = path.resolve(__dirname, "..", "spec", "1.0", "vectors");
+mkdirSync(OUT, { recursive: true });
+
+function write(name: string, value: unknown) {
+  writeFileSync(
+    path.join(OUT, name),
+    JSON.stringify(value, null, 2) + "\n",
+    "utf8",
+  );
+}
+
+// ── JCS bytes vector ──────────────────────────────────────────────────
+const jcsInput = {
+  b: 2,
+  a: 1,
+  nested: { z: [true, false, null], y: "hi" },
+};
+write("jcs.json", {
+  description:
+    "RFC 8785 JCS: recursive member sort. Input value is committed exactly by the serialization on the right.",
+  input: jcsInput,
+  bytesUtf8: jcsSerialize(jcsInput),
+  bytesHex: bytesToHex(new TextEncoder().encode(jcsSerialize(jcsInput)) as Uint8Array<ArrayBuffer>),
+});
+
+// ── Commitment vector ─────────────────────────────────────────────────
+const bytes = canonicalize("jcs@1", { code: "I50.9", system: "ICD-10" });
+const saltHex = "0123456789abcdef0123456789abcdef";
+const commitment = await commitPayload(bytes, {
+  canonicalization: "jcs@1",
+  salt: hexToBytes(saltHex),
+  hash: sha256,
+  operation: "commit",
+});
+write("commitment.json", {
+  description:
+    "SHA-256(f(tag)||f(alg)||f(canon)||f(salt)||f(canonicalBytes)). Fields are length-prefixed with uint32BE.",
+  input: { code: "I50.9", system: "ICD-10" },
+  canonicalization: "jcs@1",
+  saltHex,
+  commitment,
+});
+
+// ── Merkle tree + inclusion proofs ────────────────────────────────────
+const receiptIdForTree = `rcpt_1_${"0".repeat(32)}`;
+const leafBytes = Array.from({ length: 5 }, (_, i) => {
+  const b = new Uint8Array(4);
+  new DataView(b.buffer).setUint32(0, i + 1);
+  return b as Uint8Array<ArrayBuffer>;
+});
+const rootBytes = await merkleRoot(leafBytes, receiptIdForTree, sha256, "verifyReceipt");
+const treeProofs = [];
+for (let i = 0; i < leafBytes.length; i += 1) {
+  const proof = await proveInclusion(leafBytes, i, receiptIdForTree, sha256);
+  treeProofs.push({
+    leafIndex: i,
+    leafBytesHex: bytesToHex(leafBytes[i]!),
+    proof,
+  });
+}
+write("tree.json", {
+  description:
+    "RFC 6962-style Merkle tree with receipt-scoped ctx. Split at largest power of two < n (no duplication).",
+  receiptId: receiptIdForTree,
+  leafCount: leafBytes.length,
+  rootBytes: encodeBase64Url(rootBytes),
+  proofs: treeProofs,
+});
+
+// ── Header leaf ───────────────────────────────────────────────────────
+const header = buildHeader({
+  receiptId: receiptIdForTree,
+  createdAt: "2026-07-07T10:00:00.000Z",
+  finalizedAt: "2026-07-07T10:00:15.000Z",
+  workflow: { id: "test-wf", version: "1.0.0" },
+  hashAlgorithm: "sha-256",
+  eventCount: 3,
+});
+const headerBytes = headerLeafBytes(header);
+write("header.json", {
+  description:
+    "Header leaf: JCS of the frozen header object. eventCount pins tree size.",
+  header,
+  bytesBase64Url: encodeBase64Url(headerBytes),
+  bytesHex: bytesToHex(headerBytes),
+});
+
+// ── receipt-minimal (deterministic full run through the recorder) ────
+const minimalRun = await createReceipt({
+  workflow: { id: "minimal", version: "1.0.0" },
+  id: `rcpt_1_${"a".repeat(32)}`,
+  clock: fixedClock(Date.UTC(2026, 6, 7, 10, 0, 0, 0)),
+  random: fixedRandom(),
+});
+await minimalRun.input.observed({
+  value: { patient: "Patient/1" },
+});
+await minimalRun.model.responded({
+  value: { text: "hello" },
+});
+await minimalRun.output.committed({ value: { text: "hello" } });
+const minimalReceipt = await minimalRun.finalize({});
+write("receipt-minimal.json", minimalReceipt);
+
+// ── signature-ed25519 (pinned from a fixed PKCS#8 key) ────────────────
+// RFC 8032 §7.1 TEST 1 seed wrapped in the standard PKCS#8 prefix.
+const RFC_SEED_HEX =
+  "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60";
+const RFC_PUBLIC_HEX =
+  "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a";
+const PKCS8_PREFIX_HEX = "302e020100300506032b657004220420";
+const pkcs8 = hexToBytes(PKCS8_PREFIX_HEX + RFC_SEED_HEX);
+const publicRaw = hexToBytes(RFC_PUBLIC_HEX);
+const signer = await createEd25519Signer({
+  pkcs8: pkcs8 as Uint8Array<ArrayBuffer>,
+  publicKeyRaw: publicRaw as Uint8Array<ArrayBuffer>,
+});
+const keyId = await deriveKeyId(publicRaw as Uint8Array<ArrayBuffer>);
+const sigPayload = signaturePayloadBytes({
+  receiptId: minimalReceipt.receipt.id,
+  root: minimalReceipt.commitments.root,
+  algorithm: signer.algorithm,
+  keyId,
+  signedAt: "2026-07-07T10:00:30.000Z",
+});
+const signatureBytes = await signer.sign(sigPayload as Uint8Array<ArrayBuffer>);
+write("signature-ed25519.json", {
+  description:
+    "Verify-direction only: import the JWK, verify the signature over the pinned payload. Ed25519 is deterministic on paper but WebKit hedges, so byte-identical signatures across engines are not guaranteed.",
+  receiptId: minimalReceipt.receipt.id,
+  root: minimalReceipt.commitments.root,
+  algorithm: "ed25519",
+  keyId,
+  publicKeyJwk: signer.publicKeyJwk,
+  signedAt: "2026-07-07T10:00:30.000Z",
+  payloadBase64Url: encodeBase64Url(sigPayload),
+  signatureBase64Url: encodeBase64Url(signatureBytes),
+});
+
+// ── disclosure-basic (a subset of receipt-minimal) ────────────────────
+const pkg = await disclose(minimalReceipt, {
+  events: ["output.*"],
+  random: fixedRandom(),
+  clock: () => new Date(Date.UTC(2026, 6, 7, 10, 0, 30, 0)),
+});
+write("disclosure-basic.json", pkg);
+
+console.log(`wrote vectors to ${OUT}`);

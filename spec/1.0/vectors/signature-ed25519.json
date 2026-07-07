@@ -1,0 +1,20 @@
+{
+  "description": "Verify-direction only: import the JWK, verify the signature over the pinned payload. Ed25519 is deterministic on paper but WebKit hedges, so byte-identical signatures across engines are not guaranteed.",
+  "receiptId": "rcpt_1_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "root": {
+    "algorithm": "sha-256",
+    "structure": "clinical-receipt-merkle@1",
+    "digest": "voM9y4Sr29Z-YjNWyfvN6UwvFGxBMGmiwPWs-HjIew8"
+  },
+  "algorithm": "ed25519",
+  "keyId": "key_1_c17a1a8f08459d425a25122947f3f815",
+  "publicKeyJwk": {
+    "alg": "Ed25519",
+    "crv": "Ed25519",
+    "x": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo",
+    "kty": "OKP"
+  },
+  "signedAt": "2026-07-07T10:00:30.000Z",
+  "payloadBase64Url": "AAAAHWNsaW5pY2FsLXJlY2VpcHQ6c2lnbmF0dXJlOnYxAAABlnsicGF5bG9hZFByb2ZpbGUiOiJjbGluaWNhbC1yZWNlaXB0LXNpZ0AxIiwicmVjZWlwdElkIjoicmNwdF8xX2FhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhIiwicm9vdCI6eyJhbGdvcml0aG0iOiJzaGEtMjU2IiwiZGlnZXN0Ijoidm9NOXk0U3IyOVotWWpOV3lmdk42VXd2Rkd4Qk1HbWl3UFdzLUhqSWV3OCIsInN0cnVjdHVyZSI6ImNsaW5pY2FsLXJlY2VpcHQtbWVya2xlQDEifSwic2lnbmF0dXJlIjp7ImFsZ29yaXRobSI6ImVkMjU1MTkiLCJrZXlJZCI6ImtleV8xX2MxN2ExYThmMDg0NTlkNDI1YTI1MTIyOTQ3ZjNmODE1In0sInNpZ25lZEF0IjoiMjAyNi0wNy0wN1QxMDowMDozMC4wMDBaIiwic3BlY2lmaWNhdGlvbiI6eyJuYW1lIjoiY2xpbmljYWwtcmVjZWlwdCIsInZlcnNpb24iOiIxLjAifX0",
+  "signatureBase64Url": "M80dxKXviCVf2iQkF8uI83pJbCRQDPLztx3PACNjC7BcDQkWNSITbstAgLkZk3TdXxQ68J44aAIWpgRT2SbBDg"
+}
