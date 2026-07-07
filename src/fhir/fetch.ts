@@ -15,6 +15,11 @@ export interface InstrumentFetchOptions {
    */
   server?: FhirServer;
   privacy?: PrivacyPolicy;
+  /**
+   * Optional random source for FHIR resource commitment salts. See
+   * {@link FhirExtensionOptions.random} — same semantics.
+   */
+  random?: (byteLength: number) => Uint8Array<ArrayBuffer>;
 }
 
 interface RequestPlan {
@@ -126,6 +131,7 @@ export function instrumentFHIRFetch(
   const handle = fhirExtension(options.run, {
     server,
     ...(options.privacy !== undefined ? { privacy: options.privacy } : {}),
+    ...(options.random !== undefined ? { random: options.random } : {}),
   });
 
   const wrapped: typeof fetch = async (input, init) => {

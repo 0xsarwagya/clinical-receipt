@@ -56,6 +56,11 @@ export interface InstrumentFhirOptions<TClient extends FhirClientLike> {
   adapter?: FhirClientAdapter<TClient>;
   server?: FhirServer;
   privacy?: PrivacyPolicy;
+  /**
+   * Optional random source for FHIR resource commitment salts. See
+   * {@link FhirExtensionOptions.random} — same semantics.
+   */
+  random?: (byteLength: number) => Uint8Array<ArrayBuffer>;
 }
 
 /**
@@ -94,9 +99,11 @@ export function instrumentFHIR<TClient extends FhirClientLike>(
     baseUrl: string;
     server?: FhirServer;
     privacy?: PrivacyPolicy;
+    random?: (byteLength: number) => Uint8Array<ArrayBuffer>;
   } = { run: options.run, baseUrl: options.client.baseUrl };
   if (options.server !== undefined) wrappedInit.server = options.server;
   if (options.privacy !== undefined) wrappedInit.privacy = options.privacy;
+  if (options.random !== undefined) wrappedInit.random = options.random;
   const wrapped = instrumentFHIRFetch(options.client.fetch, wrappedInit);
   return adapter.install(options.client, wrapped);
 }

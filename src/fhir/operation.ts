@@ -135,6 +135,29 @@ interface HandleContext {
     query?: Record<string, "preserve" | "hash" | "redact">;
     resourceIds?: "preserve" | "hash";
   };
+  /**
+   * Optional random source used for FHIR resource commitment salts. When
+   * two independent receipts pass the SAME random source (or the same
+   * seeded generator), identical FHIR bodies produce identical
+   * commitment digests — the invariant a "same input state" comparison
+   * needs. Absent by default; `commitFhirValue` falls back to
+   * `crypto.getRandomValues`.
+   */
+  random: ((byteLength: number) => Uint8Array<ArrayBuffer>) | undefined;
+}
+
+/**
+ * The commitment options every FHIR resource commit inside this
+ * module uses. Threads `random` from the extension handle so callers
+ * who want deterministic commitments (Same State-style comparisons,
+ * test vectors) get identical digests for identical bytes.
+ */
+function commitOptions(
+  context: HandleContext,
+): { operation: "fhirOperation"; random?: (byteLength: number) => Uint8Array<ArrayBuffer> } {
+  return context.random !== undefined
+    ? { operation: "fhirOperation", random: context.random }
+    : { operation: "fhirOperation" };
 }
 
 function privacyDescriptor(privacy: AppliedPrivacy): HandleContext["privacyDescriptor"] {
@@ -188,7 +211,7 @@ async function buildReadPayload(
   body: unknown,
   headers: Record<string, string>,
 ): Promise<FhirResourceReadPayload> {
-  const commitment = await commitFhirValue(body, { operation: "fhirOperation" });
+  const commitment = await commitFhirValue(body, commitOptions(context));
   const bodyMeta = (body as { meta?: { versionId?: string; lastUpdated?: string } } | undefined)?.meta;
   return {
     ...commonMeta(context),
@@ -204,7 +227,7 @@ async function buildVreadPayload(
   parsed: ParsedOp & { kind: "vread"; resourceType: string; logicalId?: string; versionId?: string },
   body: unknown,
 ): Promise<FhirResourceVersionedReadPayload> {
-  const commitment = await commitFhirValue(body, { operation: "fhirOperation" });
+  const commitment = await commitFhirValue(body, commitOptions(context));
   const bodyMeta = (body as { meta?: { versionId?: string; lastUpdated?: string } } | undefined)?.meta;
   const versionId = parsed.versionId ?? bodyMeta?.versionId;
   if (typeof versionId !== "string") {
@@ -244,7 +267,7 @@ async function buildSearchPayload(
     }>;
     link?: Array<{ relation?: unknown }>;
   };
-  const commitment = await commitFhirBundle(bundle, { operation: "fhirOperation" });
+  const commitment = await commitFhirBundle(bundle, commitOptions(context));
   const resources: FhirResourceRef[] = [];
   const entries = Array.isArray(bundle.entry) ? bundle.entry : [];
   for (const entry of entries) {
@@ -301,7 +324,7 @@ async function buildWritePayload(
   const submitted =
     submittedBody === undefined || operation === "delete"
       ? undefined
-      : { commitment: await commitFhirValue(submittedBody, { operation: "fhirOperation" }) };
+      : { commitment: await commitFhirValue(submittedBody, commitOptions(context)) };
   let persisted: FhirResourceWritePayload["persisted"];
   if (responseBody !== undefined && responseBody !== null) {
     const body = responseBody as {
@@ -317,7 +340,7 @@ async function buildWritePayload(
     if (typeof meta.lastUpdated === "string") versionMeta.lastUpdated = meta.lastUpdated;
     persisted = {
       resource: await makeResourceRef(type, id, versionMeta, context.privacy),
-      commitment: await commitFhirValue(body, { operation: "fhirOperation" }),
+      commitment: await commitFhirValue(body, commitOptions(context)),
     };
   }
   const location = headers["location"] ?? headers["content-location"];
@@ -339,7 +362,7 @@ async function buildTransactionPayload(
   const submittedBundle = (submittedBody ?? {}) as { entry?: unknown[]; type?: string };
   const entryCount = Array.isArray(submittedBundle.entry) ? submittedBundle.entry.length : 0;
   const submitted = {
-    commitment: await commitFhirBundle(submittedBundle, { operation: "fhirOperation" }),
+    commitment: await commitFhirBundle(submittedBundle, commitOptions(context)),
     entryCount,
   };
   let response: FhirTransactionPayload["response"];
@@ -354,7 +377,7 @@ async function buildTransactionPayload(
         }))
       : [];
     response = {
-      commitment: await commitFhirBundle(respBundle, { operation: "fhirOperation" }),
+      commitment: await commitFhirBundle(respBundle, commitOptions(context)),
       entries,
     };
   }
@@ -382,6 +405,20 @@ async function buildTransactionPayload(
 export interface FhirExtensionOptions {
   server: FhirServer;
   privacy?: PrivacyPolicy;
+  /**
+   * Optional random source for FHIR resource commitment salts. Two
+   * independent `fhirExtension` handles sharing the same random source
+   * (or the same seeded generator) will produce IDENTICAL commitment
+   * digests for identical FHIR bodies — the invariant a "same input
+   * state" comparison needs. Absent by default, and the fallback is
+   * `globalThis.crypto.getRandomValues`.
+   *
+   * Note: this ONLY controls the salt on FHIR resource commitments
+   * (the `commitment` field inside `resource.read`, `search.bundle`,
+   * `resource.write` payloads). The recorder-side event envelope salt
+   * is controlled by `createReceipt({ random })`.
+   */
+  random?: (byteLength: number) => Uint8Array<ArrayBuffer>;
 }
 
 export function fhirExtension(
@@ -401,6 +438,7 @@ export function fhirExtension(
     server: options.server,
     privacy,
     privacyDescriptor: privacyDescriptor(privacy),
+    random: options.random,
   };
   return {
     operation(input) {
@@ -500,9 +538,10 @@ function makeOperation(context: HandleContext, input: FhirOperationInput): FhirO
       ...(err.operationOutcome !== undefined
         ? {
             operationOutcome: {
-              commitment: await commitFhirValue(err.operationOutcome, {
-                operation: "fhirOperation",
-              }),
+              commitment: await commitFhirValue(
+                err.operationOutcome,
+                commitOptions(context),
+              ),
             },
           }
         : {}),
