@@ -4,11 +4,12 @@ import { PAYLOAD_SALT_BYTES } from "../core/constants.js";
 import type { HashAlgorithm } from "../core/hash.js";
 import type { ReceiptOperation } from "../errors.js";
 import { FHIR_CANONICALIZATION } from "./constants.js";
+import { registerFhirCanonicalization } from "./canonicalize.js";
 
-// Register the profile as a side effect of importing this module.
-// canonicalize.ts is a pure switch on `resolved`; the alias registry
-// resolves `fhir-json-r4@1` → `jcs@1` for v0.2.0.
-import "./canonicalize.js";
+// Ensure the `fhir-json-r4@1` alias is registered before any commit
+// runs, no matter how this module is reached. Side-effectful imports
+// get tree-shaken by aggressive bundlers; an explicit call cannot.
+registerFhirCanonicalization();
 
 export interface CommitFhirResourceOptions {
   salt?: Uint8Array<ArrayBuffer> | null;

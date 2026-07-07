@@ -2,11 +2,14 @@ import { commitmentsEqual, type Commitment } from "../core/commitment.js";
 import { verifyReceipt, type VerifyOptions } from "./receipt.js";
 import type { VerificationReport } from "./report.js";
 import { commitFhirValue } from "../fhir/commit.js";
+import { registerFhirCanonicalization } from "../fhir/canonicalize.js";
 import { registerFhirNamespace } from "../fhir/register.js";
 
-// Register the reserved namespace explicitly so tree-shakers cannot
-// drop the side effect — the whole point of using verifyFHIR is that
-// FHIR events show up as `extensions.understood`.
+// Register both FHIR side effects explicitly so tree-shakers cannot
+// drop them — otherwise `commitFhirValue` (used below) would throw
+// UNSUPPORTED_CANONICALIZATION on the first call, and FHIR events
+// would show up as unknown extensions in the report.
+registerFhirCanonicalization();
 registerFhirNamespace();
 import {
   FHIR_EVENT_KINDS,

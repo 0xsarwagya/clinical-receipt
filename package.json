@@ -1,6 +1,6 @@
 {
   "name": "@0xsarwagya/clinical-receipt",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Portable, independently verifiable receipts of how a clinical AI output came to exist.",
   "type": "module",
   "license": "Apache-2.0",

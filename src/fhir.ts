@@ -8,9 +8,11 @@
  */
 
 // Register both side effects explicitly so a bundler cannot drop them.
-// Both functions are idempotent.
-import "./fhir/canonicalize.js";
+// Both functions are idempotent — safe to call from anywhere that
+// consumes the FHIR surface.
+import { registerFhirCanonicalization } from "./fhir/canonicalize.js";
 import { registerFhirNamespace } from "./fhir/register.js";
+registerFhirCanonicalization();
 registerFhirNamespace();
 
 export {
